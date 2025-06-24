@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
+import axios from 'axios';
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -10,18 +11,37 @@ import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
 type RegisterForm = {
-    name: string;
+    firstname: string;
+    lastname: string;
     email: string;
     password: string;
     password_confirmation: string;
+    subdomain: string;
 };
 
 export default function Register() {
+    const [subdomainStatus, setSubdomainStatus] = useState<{ status: boolean; message: string } | null>(null);
+
+    const checkSubdomain = async (subdomain: string) => {
+        if (!subdomain) {
+            setSubdomainStatus(null);
+            return;
+        }
+        try {
+            const response = await axios.post(route('accounts.subdomain'), { subdomain });
+            setSubdomainStatus(response.data);
+        } catch (error) {
+            setSubdomainStatus({ status: false, message: 'Error checking subdomain.' });
+        }
+    };
+
     const { data, setData, post, processing, errors, reset } = useForm<Required<RegisterForm>>({
-        name: '',
+        firstname: '',
+        lastname: '',
         email: '',
         password: '',
         password_confirmation: '',
+        subdomain: '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -32,12 +52,12 @@ export default function Register() {
     };
 
     return (
-        <AuthLayout title="Create an account" description="Enter your details below to create your account">
+        <AuthLayout title="Register" description="Enter your details below to register for the application">
             <Head title="Register" />
             <form className="flex flex-col gap-6" onSubmit={submit}>
                 <div className="grid gap-6">
                     <div className="grid gap-2">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">First Name</Label>
                         <Input
                             id="name"
                             type="text"
@@ -45,12 +65,29 @@ export default function Register() {
                             autoFocus
                             tabIndex={1}
                             autoComplete="name"
-                            value={data.name}
-                            onChange={(e) => setData('name', e.target.value)}
+                            value={data.firstname}
+                            onChange={(e) => setData('firstname', e.target.value)}
                             disabled={processing}
-                            placeholder="Full name"
+                            placeholder=""
                         />
-                        <InputError message={errors.name} className="mt-2" />
+                        <InputError message={errors.firstname} className="mt-2" />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="name">LastName</Label>
+                        <Input
+                            id="name"
+                            type="text"
+                            required
+                            autoFocus
+                            tabIndex={1}
+                            autoComplete="name"
+                            value={data.lastname}
+                            onChange={(e) => setData('lastname', e.target.value)}
+                            disabled={processing}
+                            placeholder=""
+                        />
+                        <InputError message={errors.firstname} className="mt-2" />
                     </div>
 
                     <div className="grid gap-2">
@@ -86,6 +123,27 @@ export default function Register() {
                     </div>
 
                     <div className="grid gap-2">
+                        <Label htmlFor="subdomain">Subdomain</Label>
+                        <Input
+                            id="subdomain"
+                            type="text"
+                            value={data.subdomain}
+                            onChange={(e) => {
+                                setData('subdomain', e.target.value);
+                                checkSubdomain(e.target.value);
+                            }}
+                            onBlur={(e) => checkSubdomain(e.target.value)}
+                            disabled={processing}
+                            placeholder="Enter subdomain"
+                        />
+                        {subdomainStatus && (
+                            <div className={subdomainStatus.status ? 'text-green-600 text-xs mt-1' : 'text-red-600 text-xs mt-1'}>
+                                {subdomainStatus.message}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid gap-2">
                         <Label htmlFor="password_confirmation">Confirm password</Label>
                         <Input
                             id="password_confirmation"
@@ -103,12 +161,12 @@ export default function Register() {
 
                     <Button type="submit" className="mt-2 w-full" tabIndex={5} disabled={processing}>
                         {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                        Create account
+                        Register
                     </Button>
                 </div>
 
                 <div className="text-center text-sm text-muted-foreground">
-                    Already have an account?{' '}
+                    Already registered?{' '}
                     <TextLink href={route('login')} tabIndex={6}>
                         Log in
                     </TextLink>
